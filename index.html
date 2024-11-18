@@ -1,0 +1,206 @@
+!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Práctica de Tildes</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        .radio-button:checked + label {
+            background-color: #2563eb;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-center mb-8">Práctica de Tildes</h1>
+            
+            <div id="ejercicio" class="space-y-6">
+                <p class="text-xl text-center mb-8" id="frase"></p>
+
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-medium mb-2">Selecciona la palabra correcta:</h3>
+                        <div id="opcionesPalabras" class="flex space-x-4">
+                            <!-- Las opciones se insertarán aquí -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-medium mb-2">¿Por qué regla lleva o no tilde?</h3>
+                        <div id="opcionesReglas" class="space-y-2">
+                            <!-- Las reglas se insertarán aquí -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="resultado" class="hidden rounded-lg p-4 my-4">
+                    <!-- El resultado se mostrará aquí -->
+                </div>
+
+                <div class="flex justify-between">
+                    <button 
+                        id="verificar"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-all"
+                    >
+                        Verificar
+                    </button>
+                    
+                    <button 
+                        id="siguiente"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-all hidden"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ejercicios = [
+            {
+                frase: "Mi hermano tom_ el bus",
+                palabra: "tomó",
+                opciones: ["tomo", "tomó"],
+                reglas: [
+                    "Palabra aguda terminada en vocal",
+                    "Palabra aguda terminada en -n, -s o vocal",
+                    "Palabra grave terminada en consonante",
+                    "Palabra esdrújula"
+                ],
+                reglaCorrecta: "Palabra aguda terminada en -n, -s o vocal"
+            },
+            {
+                frase: "El l_piz es azul",
+                palabra: "lápiz",
+                opciones: ["lapiz", "lápiz"],
+                reglas: [
+                    "Palabra aguda terminada en -z",
+                    "Palabra grave terminada en consonante",
+                    "Palabra esdrújula",
+                    "Palabra aguda terminada en vocal"
+                ],
+                reglaCorrecta: "Palabra grave terminada en consonante"
+            },
+            {
+                frase: "Mi t_o vive lejos",
+                palabra: "tío",
+                opciones: ["tio", "tío"],
+                reglas: [
+                    "Hiato: vocal cerrada tónica + vocal abierta",
+                    "Diptongo: vocal abierta + vocal cerrada",
+                    "Palabra aguda terminada en vocal",
+                    "Palabra grave"
+                ],
+                reglaCorrecta: "Hiato: vocal cerrada tónica + vocal abierta"
+            }
+        ];
+
+        let ejercicioActual = 0;
+        let seleccionPalabra = "";
+        let seleccionRegla = "";
+
+        function mostrarEjercicio() {
+            const ejercicio = ejercicios[ejercicioActual];
+            
+            // Mostrar la frase
+            document.getElementById('frase').textContent = ejercicio.frase;
+            
+            // Mostrar opciones de palabras
+            const opcionesPalabras = document.getElementById('opcionesPalabras');
+            opcionesPalabras.innerHTML = ejercicio.opciones.map((opcion, index) => `
+                <div class="flex items-center">
+                    <input type="radio" 
+                           id="palabra-${index}" 
+                           name="palabra" 
+                           value="${opcion}"
+                           class="hidden radio-button">
+                    <label for="palabra-${index}"
+                           class="px-4 py-2 border rounded cursor-pointer hover:bg-gray-100 transition-all">
+                        ${opcion}
+                    </label>
+                </div>
+            `).join('');
+            
+            // Mostrar opciones de reglas
+            const opcionesReglas = document.getElementById('opcionesReglas');
+            opcionesReglas.innerHTML = ejercicio.reglas.map((regla, index) => `
+                <div class="flex items-center">
+                    <input type="radio" 
+                           id="regla-${index}" 
+                           name="regla" 
+                           value="${regla}"
+                           class="hidden radio-button">
+                    <label for="regla-${index}"
+                           class="px-4 py-2 border rounded cursor-pointer hover:bg-gray-100 transition-all block w-full">
+                        ${regla}
+                    </label>
+                </div>
+            `).join('');
+
+            // Resetear selecciones
+            seleccionPalabra = "";
+            seleccionRegla = "";
+            
+            // Ocultar resultado y botón siguiente
+            document.getElementById('resultado').classList.add('hidden');
+            document.getElementById('siguiente').classList.add('hidden');
+            document.getElementById('verificar').classList.remove('hidden');
+        }
+
+        function verificarRespuesta() {
+            const ejercicio = ejercicios[ejercicioActual];
+            const esCorrecta = 
+                seleccionPalabra === ejercicio.palabra && 
+                seleccionRegla === ejercicio.reglaCorrecta;
+            
+            const resultado = document.getElementById('resultado');
+            resultado.classList.remove('hidden');
+            
+            if (esCorrecta) {
+                resultado.className = 'bg-green-100 border-green-400 text-green-700 px-4 py-3 rounded relative';
+                resultado.innerHTML = `
+                    <strong class="font-bold">¡Correcto! 🎉</strong>
+                    <p>¡Muy bien! Has aplicado correctamente la regla.</p>
+                `;
+            } else {
+                resultado.className = 'bg-red-100 border-red-400 text-red-700 px-4 py-3 rounded relative';
+                resultado.innerHTML = `
+                    <strong class="font-bold">¡Sigue intentando! 💪</strong>
+                    <p>La respuesta correcta es "${ejercicio.palabra}" porque ${ejercicio.reglaCorrecta.toLowerCase()}.</p>
+                `;
+            }
+            
+            document.getElementById('verificar').classList.add('hidden');
+            document.getElementById('siguiente').classList.remove('hidden');
+        }
+
+        function siguienteEjercicio() {
+            ejercicioActual = (ejercicioActual + 1) % ejercicios.length;
+            mostrarEjercicio();
+        }
+
+        // Event Listeners
+        document.getElementById('verificar').addEventListener('click', verificarRespuesta);
+        document.getElementById('siguiente').addEventListener('click', siguienteEjercicio);
+        
+        document.addEventListener('click', function(e) {
+            if (e.target.name === 'palabra') {
+                seleccionPalabra = e.target.value;
+            }
+            if (e.target.name === 'regla') {
+                seleccionRegla = e.target.value;
+            }
+        });
+
+        // Iniciar el primer ejercicio
+        mostrarEjercicio();
+    </script>
+</body>
+</html>
