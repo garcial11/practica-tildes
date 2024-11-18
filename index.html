@@ -108,32 +108,173 @@
         </div>
     </div>
 
-    <script type="module">
-        import ejercicios from './ejercicios.js';
-        
+    <script>
+        // Ejercicios de respaldo en caso de que los módulos no funcionen
+        const ejerciciosRespaldo = [
+            // Copiar aquí todos los ejercicios del archivo ejercicios.js
+        ];
+    
+        let ejercicios = ejerciciosRespaldo;
+    
+        // Variables globales
         let ejercicioActual = 0;
         let seleccionPalabra = "";
         let seleccionRegla = "";
+        let aciertos = 0;
+        let totalIntentos = 0;
+        let ejerciciosFiltrados = [];
     
-        function mostrarEjercicio() {
-            const ejercicio = ejercicios[ejercicioActual];
-            // ... resto del código de las funciones ...
+        function filtrarEjercicios() {
+            const nivel = document.getElementById('nivel').value;
+            const categoria = document.getElementById('categoria').value;
+            
+            ejerciciosFiltrados = ejercicios.filter(ej => {
+                if (categoria === 'todas') return true;
+                return ej.categoria === categoria;
+            }).filter(ej => {
+                if (nivel === 'todas') return true;
+                return ej.nivel === nivel;
+            });
+            
+            ejercicioActual = 0;
+            mostrarEjercicio();
         }
     
-        // ... resto de las funciones ...
+        function actualizarEstadisticas() {
+            document.getElementById('aciertos').textContent = aciertos;
+            document.getElementById('total').textContent = totalIntentos;
+            const porcentaje = totalIntentos === 0 ? 0 : Math.round((aciertos / totalIntentos) * 100);
+            document.getElementById('porcentaje').textContent = porcentaje;
+            document.getElementById('progressBar').style.width = porcentaje + '%';
+        }
+    
+        function mostrarEjercicio() {
+            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
+            
+            document.getElementById('frase').textContent = ejercicio.frase;
+            
+            const opcionesPalabras = document.getElementById('opcionesPalabras');
+            opcionesPalabras.innerHTML = ejercicio.opciones.map((opcion, index) => `
+                <div class="flex items-center">
+                    <input type="radio" 
+                           id="palabra-${index}" 
+                           name="palabra" 
+                           value="${opcion}"
+                           class="hidden radio-button">
+                    <label for="palabra-${index}"
+                           class="px-4 py-2 border rounded cursor-pointer hover:bg-gray-100 transition-all">
+                        ${opcion}
+                    </label>
+                </div>
+            `).join('');
+            
+            const opcionesReglas = document.getElementById('opcionesReglas');
+            opcionesReglas.innerHTML = ejercicio.reglas.map((regla, index) => `
+                <div class="flex items-center">
+                    <input type="radio" 
+                           id="regla-${index}" 
+                           name="regla" 
+                           value="${regla}"
+                           class="hidden radio-button">
+                    <label for="regla-${index}"
+                           class="px-4 py-2 border rounded cursor-pointer hover:bg-gray-100 transition-all block w-full">
+                        ${regla}
+                    </label>
+                </div>
+            `).join('');
+    
+            seleccionPalabra = "";
+            seleccionRegla = "";
+            
+            document.getElementById('resultado').classList.add('hidden');
+            document.getElementById('explicacion').classList.add('hidden');
+            document.getElementById('siguiente').classList.add('hidden');
+            document.getElementById('verificar').classList.remove('hidden');
+        }
+    
+        function verificarRespuesta() {
+            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
+            const esCorrecta = 
+                seleccionPalabra === ejercicio.palabra && 
+                seleccionRegla === ejercicio.reglaCorrecta;
+            
+            totalIntentos++;
+            if (esCorrecta) aciertos++;
+            actualizarEstadisticas();
+            
+            const resultado = document.getElementById('resultado');
+            const explicacion = document.getElementById('explicacion');
+            resultado.classList.remove('hidden');
+            explicacion.classList.remove('hidden');
+            
+            if (esCorrecta) {
+                resultado.className = 'bg-green-100 border-green-400 text-green-700 px-4 py-3 rounded relative';
+                resultado.innerHTML = `
+                    <strong class="font-bold">¡Correcto! 🎉</strong>
+                    <p>¡Muy bien! Has aplicado correctamente la regla.</p>
+                `;
+            } else {
+                resultado.className = 'bg-red-100 border-red-400 text-red-700 px-4 py-3 rounded relative';
+                resultado.innerHTML = `
+                    <strong class="font-bold">¡Sigue intentando! 💪</strong>
+                    <p>La respuesta correcta es "${ejercicio.palabra}" porque ${ejercicio.reglaCorrecta.toLowerCase()}.</p>
+                `;
+            }
+            
+            explicacion.innerHTML = `
+                <strong class="font-bold">Explicación:</strong>
+                <p>${ejercicio.explicacion}</p>
+            `;
+            
+            document.getElementById('verificar').classList.add('hidden');
+            document.getElementById('siguiente').classList.remove('hidden');
+        }
+    
+        function siguienteEjercicio() {
+            if (document.getElementById('modo').value === 'examen' && ejercicioActual >= 9) {
+                alert(`¡Examen terminado!\nPuntuación final: ${aciertos} de ${totalIntentos}`);
+                ejercicioActual = 0;
+                aciertos = 0;
+                totalIntentos = 0;
+            } else {
+                ejercicioActual = (ejercicioActual + 1) % ejercicios.length;
+            }
+            mostrarEjercicio();
+        }
     
         // Event Listeners
         document.getElementById('verificar').addEventListener('click', verificarRespuesta);
         document.getElementById('siguiente').addEventListener('click', siguienteEjercicio);
         
         document.addEventListener('click', function(e) {
-            if (e.target.name === 'palabra') {
-                seleccionPalabra = e.target.value;
-            }
-            if (e.target.name === 'regla') {
-                seleccionRegla = e.target.value;
-            }
+            if (e.target.name === 'palabra') seleccionPalabra = e.target.value;
+            if (e.target.name === 'regla') seleccionRegla = e.target.value;
         });
+    
+        document.getElementById('nivel').addEventListener('change', filtrarEjercicios);
+        document.getElementById('categoria').addEventListener('change', filtrarEjercicios);
+        document.getElementById('modo').addEventListener('change', () => {
+            if (document.getElementById('modo').value === 'examen') {
+                aciertos = 0;
+                totalIntentos = 0;
+                ejercicioActual = 0;
+                actualizarEstadisticas();
+            }
+            mostrarEjercicio();
+        });
+    
+        // Cargar módulo si está disponible
+        try {
+            import('./ejercicios.js').then(modulo => {
+                ejercicios = modulo.default;
+                console.log('Módulo cargado correctamente');
+                mostrarEjercicio();
+            }).catch(e => {
+                console.log('Usando ejercicios de respaldo');
+            });
+        } catch (e) {
+            console.log('Usando ejercicios de respaldo');
+        }
     
         // Iniciar el primer ejercicio
         mostrarEjercicio();
