@@ -109,20 +109,60 @@
     </div>
 
     <script>
-        // Ejercicios de respaldo en caso de que los módulos no funcionen
-        const ejerciciosRespaldo = [
-            // Copiar aquí todos los ejercicios del archivo ejercicios.js
+        const ejercicios = [
+            {
+                frase: "Mi hermano tom_ el bus",
+                palabra: "tomó",
+                opciones: ["tomo", "tomó"],
+                reglas: [
+                    "Palabra aguda terminada en vocal",
+                    "Palabra aguda terminada en -n, -s o vocal",
+                    "Palabra grave terminada en consonante",
+                    "Palabra esdrújula"
+                ],
+                reglaCorrecta: "Palabra aguda terminada en -n, -s o vocal",
+                categoria: "agudas",
+                nivel: "facil",
+                explicacion: "Las palabras agudas llevan tilde cuando terminan en -n, -s o vocal. En este caso, 'tomó' es aguda (última sílaba tónica) y termina en vocal (-ó)."
+            },
+            {
+                frase: "El l_piz es azul",
+                palabra: "lápiz",
+                opciones: ["lapiz", "lápiz"],
+                reglas: [
+                    "Palabra aguda terminada en -z",
+                    "Palabra grave terminada en consonante",
+                    "Palabra esdrújula",
+                    "Palabra aguda terminada en vocal"
+                ],
+                reglaCorrecta: "Palabra grave terminada en consonante",
+                categoria: "graves",
+                nivel: "facil",
+                explicacion: "'Lápiz' es una palabra grave terminada en consonante diferente de n o s, por lo que lleva tilde."
+            },
+            {
+                frase: "Mi t_o vive lejos",
+                palabra: "tío",
+                opciones: ["tio", "tío"],
+                reglas: [
+                    "Hiato: vocal cerrada tónica + vocal abierta",
+                    "Diptongo: vocal abierta + vocal cerrada",
+                    "Palabra aguda terminada en vocal",
+                    "Palabra grave"
+                ],
+                reglaCorrecta: "Hiato: vocal cerrada tónica + vocal abierta",
+                categoria: "hiatos",
+                nivel: "medio",
+                explicacion: "Cuando hay un hiato formado por vocal cerrada tónica (í) y vocal abierta (o), la vocal cerrada lleva tilde."
+            }
         ];
     
-        let ejercicios = ejerciciosRespaldo;
-    
-        // Variables globales
         let ejercicioActual = 0;
         let seleccionPalabra = "";
         let seleccionRegla = "";
         let aciertos = 0;
         let totalIntentos = 0;
-        let ejerciciosFiltrados = [];
+        let ejerciciosFiltrados = ejercicios;
     
         function filtrarEjercicios() {
             const nivel = document.getElementById('nivel').value;
@@ -149,7 +189,12 @@
         }
     
         function mostrarEjercicio() {
-            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
+            const ejercicio = ejerciciosFiltrados[ejercicioActual];
+            if (!ejercicio) {
+                ejerciciosFiltrados = ejercicios;
+                ejercicioActual = 0;
+                return mostrarEjercicio();
+            }
             
             document.getElementById('frase').textContent = ejercicio.frase;
             
@@ -193,7 +238,7 @@
         }
     
         function verificarRespuesta() {
-            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
+            const ejercicio = ejerciciosFiltrados[ejercicioActual];
             const esCorrecta = 
                 seleccionPalabra === ejercicio.palabra && 
                 seleccionRegla === ejercicio.reglaCorrecta;
@@ -231,13 +276,14 @@
         }
     
         function siguienteEjercicio() {
-            if (document.getElementById('modo').value === 'examen' && ejercicioActual >= 9) {
+            if (document.getElementById('modo').value === 'examen' && totalIntentos >= 10) {
                 alert(`¡Examen terminado!\nPuntuación final: ${aciertos} de ${totalIntentos}`);
                 ejercicioActual = 0;
                 aciertos = 0;
                 totalIntentos = 0;
+                actualizarEstadisticas();
             } else {
-                ejercicioActual = (ejercicioActual + 1) % ejercicios.length;
+                ejercicioActual = (ejercicioActual + 1) % ejerciciosFiltrados.length;
             }
             mostrarEjercicio();
         }
@@ -263,20 +309,7 @@
             mostrarEjercicio();
         });
     
-        // Cargar módulo si está disponible
-        try {
-            import('./ejercicios.js').then(modulo => {
-                ejercicios = modulo.default;
-                console.log('Módulo cargado correctamente');
-                mostrarEjercicio();
-            }).catch(e => {
-                console.log('Usando ejercicios de respaldo');
-            });
-        } catch (e) {
-            console.log('Usando ejercicios de respaldo');
-        }
-    
-        // Iniciar el primer ejercicio
+        // Iniciar
         mostrarEjercicio();
     </script>
 </body>
