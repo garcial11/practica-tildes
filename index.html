@@ -13,10 +13,56 @@
             background-color: #2563eb;
             color: white;
         }
+        .progress-bar {
+            height: 20px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #2563eb;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Panel Superior -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="space-y-2">
+                    <h2 class="font-bold">Progreso Total</h2>
+                    <div class="progress-bar w-64">
+                        <div id="progressBar" class="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p>Aciertos: <span id="aciertos">0</span>/<span id="total">0</span></p>
+                    <p>Porcentaje: <span id="porcentaje">0</span>%</p>
+                </div>
+            </div>
+            <div class="flex justify-between items-center">
+                <select id="nivel" class="border p-2 rounded">
+                    <option value="facil">Nivel Fácil</option>
+                    <option value="medio">Nivel Medio</option>
+                    <option value="dificil">Nivel Difícil</option>
+                </select>
+                <select id="modo" class="border p-2 rounded">
+                    <option value="practica">Modo Práctica</option>
+                    <option value="examen">Modo Examen</option>
+                </select>
+                <select id="categoria" class="border p-2 rounded">
+                    <option value="todas">Todas las categorías</option>
+                    <option value="agudas">Palabras agudas</option>
+                    <option value="graves">Palabras graves</option>
+                    <option value="esdrujulas">Palabras esdrújulas</option>
+                    <option value="hiatos">Hiatos y diptongos</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Panel Principal -->
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h1 class="text-2xl font-bold text-center mb-8">Práctica de Tildes</h1>
             
@@ -27,20 +73,20 @@
                     <div>
                         <h3 class="font-medium mb-2">Selecciona la palabra correcta:</h3>
                         <div id="opcionesPalabras" class="flex space-x-4">
-                            <!-- Las opciones se insertarán aquí -->
                         </div>
                     </div>
 
                     <div>
                         <h3 class="font-medium mb-2">¿Por qué regla lleva o no tilde?</h3>
                         <div id="opcionesReglas" class="space-y-2">
-                            <!-- Las reglas se insertarán aquí -->
                         </div>
                     </div>
                 </div>
 
                 <div id="resultado" class="hidden rounded-lg p-4 my-4">
-                    <!-- El resultado se mostrará aquí -->
+                </div>
+
+                <div id="explicacion" class="hidden bg-blue-50 border-blue-200 text-blue-800 p-4 rounded-lg my-4">
                 </div>
 
                 <div class="flex justify-between">
@@ -63,6 +109,21 @@
     </div>
 
     <script>
+        // Variables globales
+        let ejercicioActual = 0;
+        let seleccionPalabra = "";
+        let seleccionRegla = "";
+        let aciertos = 0;
+        let totalIntentos = 0;
+        let ejerciciosFiltrados = [];
+        
+        // Cargar progreso guardado
+        const progresoGuardado = JSON.parse(localStorage.getItem('progresoTildes') || '{"aciertos":0,"total":0}');
+        aciertos = progresoGuardado.aciertos;
+        totalIntentos = progresoGuardado.total;
+        actualizarEstadisticas();
+
+        // Base de ejercicios inicial (luego añadiremos más)
         const ejercicios = [
             {
                 frase: "Mi hermano tom_ el bus",
@@ -74,45 +135,49 @@
                     "Palabra grave terminada en consonante",
                     "Palabra esdrújula"
                 ],
-                reglaCorrecta: "Palabra aguda terminada en -n, -s o vocal"
+                reglaCorrecta: "Palabra aguda terminada en -n, -s o vocal",
+                categoria: "agudas",
+                nivel: "facil",
+                explicacion: "Las palabras agudas llevan tilde cuando terminan en -n, -s o vocal. En este caso, 'tomó' es aguda (la última sílaba es tónica) y termina en vocal (-ó)."
             },
-            {
-                frase: "El l_piz es azul",
-                palabra: "lápiz",
-                opciones: ["lapiz", "lápiz"],
-                reglas: [
-                    "Palabra aguda terminada en -z",
-                    "Palabra grave terminada en consonante",
-                    "Palabra esdrújula",
-                    "Palabra aguda terminada en vocal"
-                ],
-                reglaCorrecta: "Palabra grave terminada en consonante"
-            },
-            {
-                frase: "Mi t_o vive lejos",
-                palabra: "tío",
-                opciones: ["tio", "tío"],
-                reglas: [
-                    "Hiato: vocal cerrada tónica + vocal abierta",
-                    "Diptongo: vocal abierta + vocal cerrada",
-                    "Palabra aguda terminada en vocal",
-                    "Palabra grave"
-                ],
-                reglaCorrecta: "Hiato: vocal cerrada tónica + vocal abierta"
-            }
+            // ... [Aquí irían los 1000 ejercicios]
         ];
 
-        let ejercicioActual = 0;
-        let seleccionPalabra = "";
-        let seleccionRegla = "";
+        function filtrarEjercicios() {
+            const nivel = document.getElementById('nivel').value;
+            const categoria = document.getElementById('categoria').value;
+            
+            ejerciciosFiltrados = ejercicios.filter(ej => {
+                if (categoria === 'todas') return true;
+                return ej.categoria === categoria;
+            }).filter(ej => {
+                if (nivel === 'todas') return true;
+                return ej.nivel === nivel;
+            });
+            
+            ejercicioActual = 0;
+            mostrarEjercicio();
+        }
+
+        function actualizarEstadisticas() {
+            document.getElementById('aciertos').textContent = aciertos;
+            document.getElementById('total').textContent = totalIntentos;
+            const porcentaje = totalIntentos === 0 ? 0 : Math.round((aciertos / totalIntentos) * 100);
+            document.getElementById('porcentaje').textContent = porcentaje;
+            document.getElementById('progressBar').style.width = porcentaje + '%';
+            
+            // Guardar progreso
+            localStorage.setItem('progresoTildes', JSON.stringify({
+                aciertos: aciertos,
+                total: totalIntentos
+            }));
+        }
 
         function mostrarEjercicio() {
-            const ejercicio = ejercicios[ejercicioActual];
+            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
             
-            // Mostrar la frase
             document.getElementById('frase').textContent = ejercicio.frase;
             
-            // Mostrar opciones de palabras
             const opcionesPalabras = document.getElementById('opcionesPalabras');
             opcionesPalabras.innerHTML = ejercicio.opciones.map((opcion, index) => `
                 <div class="flex items-center">
@@ -128,7 +193,6 @@
                 </div>
             `).join('');
             
-            // Mostrar opciones de reglas
             const opcionesReglas = document.getElementById('opcionesReglas');
             opcionesReglas.innerHTML = ejercicio.reglas.map((regla, index) => `
                 <div class="flex items-center">
@@ -144,29 +208,34 @@
                 </div>
             `).join('');
 
-            // Resetear selecciones
             seleccionPalabra = "";
             seleccionRegla = "";
             
-            // Ocultar resultado y botón siguiente
             document.getElementById('resultado').classList.add('hidden');
+            document.getElementById('explicacion').classList.add('hidden');
             document.getElementById('siguiente').classList.add('hidden');
             document.getElementById('verificar').classList.remove('hidden');
         }
 
         function verificarRespuesta() {
-            const ejercicio = ejercicios[ejercicioActual];
+            const ejercicio = ejerciciosFiltrados[ejercicioActual] || ejercicios[ejercicioActual];
             const esCorrecta = 
                 seleccionPalabra === ejercicio.palabra && 
                 seleccionRegla === ejercicio.reglaCorrecta;
             
+            totalIntentos++;
+            if (esCorrecta) aciertos++;
+            actualizarEstadisticas();
+            
             const resultado = document.getElementById('resultado');
+            const explicacion = document.getElementById('explicacion');
             resultado.classList.remove('hidden');
+            explicacion.classList.remove('hidden');
             
             if (esCorrecta) {
                 resultado.className = 'bg-green-100 border-green-400 text-green-700 px-4 py-3 rounded relative';
                 resultado.innerHTML = `
-                    <strong class="font-bold">¡Correc◊to! 🎉</strong>
+                    <strong class="font-bold">¡Correcto! 🎉</strong>
                     <p>¡Muy bien! Has aplicado correctamente la regla.</p>
                 `;
             } else {
@@ -177,12 +246,24 @@
                 `;
             }
             
+            explicacion.innerHTML = `
+                <strong class="font-bold">Explicación:</strong>
+                <p>${ejercicio.explicacion}</p>
+            `;
+            
             document.getElementById('verificar').classList.add('hidden');
             document.getElementById('siguiente').classList.remove('hidden');
         }
 
         function siguienteEjercicio() {
-            ejercicioActual = (ejercicioActual + 1) % ejercicios.length;
+            if (document.getElementById('modo').value === 'examen' && ejercicioActual >= 9) {
+                alert(`¡Examen terminado!\nPuntuación final: ${aciertos} de ${totalIntentos}`);
+                ejercicioActual = 0;
+                aciertos = 0;
+                totalIntentos = 0;
+            } else {
+                ejercicioActual = (ejercicioActual + 1) % ejercicios.length;
+            }
             mostrarEjercicio();
         }
 
@@ -191,15 +272,24 @@
         document.getElementById('siguiente').addEventListener('click', siguienteEjercicio);
         
         document.addEventListener('click', function(e) {
-            if (e.target.name === 'palabra') {
-                seleccionPalabra = e.target.value;
-            }
-            if (e.target.name === 'regla') {
-                seleccionRegla = e.target.value;
-            }
+            if (e.target.name === 'palabra') seleccionPalabra = e.target.value;
+            if (e.target.name === 'regla') seleccionRegla = e.target.value;
         });
 
-        // Iniciar el primer ejercicio
+        document.getElementById('nivel').addEventListener('change', filtrarEjercicios);
+        document.getElementById('categoria').addEventListener('change', filtrarEjercicios);
+        document.getElementById('modo').addEventListener('change', () => {
+            if (document.getElementById('modo').value === 'examen') {
+                aciertos = 0;
+                totalIntentos = 0;
+                ejercicioActual = 0;
+                actualizarEstadisticas();
+            }
+            mostrarEjercicio();
+        });
+
+        // Iniciar
+        filtrarEjercicios();
         mostrarEjercicio();
     </script>
 </body>
